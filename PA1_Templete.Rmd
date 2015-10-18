@@ -1,0 +1,143 @@
+---
+title: "PA1_templete"
+author: "Zuraida"
+date: "Monday, October 19, 2015"
+output: html_document
+---
+
+
+#Loading and preprocessing the data
+
+Here is a code chunk for loading and preprocessing the data.
+```{r load and preprocess}
+getwd()
+setwd("D:/R assignment/Reproducible research")
+##setwd("D:/Bid data cousera/Reproducible research")
+MyData <- read.csv(file="activity.csv", header=TRUE, sep=",")
+```
+
+#Mean total number of steps taken per day
+
+Here is the code chunk for sum, mean and median total number of steps taken per day.
+```{r mean total number of steps taken per day}
+
+
+sum_daily <- aggregate(MyData$steps, list(date=MyData$date), sum, na.rm = TRUE)
+mean_daily <- aggregate (MyData$steps, list(date=MyData$date), mean, na.rm = TRUE)
+mean_daily
+median_daily <- aggregate (MyData$steps, list (date=MyData$date), median,na.rm = TRUE)
+median_daily
+```
+
+Here is the table for means
+```{r show means, results="asis"}
+library(datasets)
+library(xtable)
+
+xt <- xtable(mean_daily)
+print(xt, type="html")
+```
+
+Here is the table for medians
+```{r show median, results="asis"}
+library(datasets)
+library(xtable)
+
+xt <- xtable(median_daily)
+print(xt, type="html")
+```
+
+#Average daily activity pattern
+
+Here is the code chunck for average daily pattern.
+```{r average daily pattern}
+average_steps_interval <- aggregate(MyData$steps, list(interval=MyData$interval), mean, na.rm = TRUE)
+
+plot(average_steps_interval$interval, average_steps_interval$x, xlab= "5 Minutes Interval", ylab= "average steps across all days", type='l', col='red') 
+Max <- max(average_steps_interval$x)
+Max_interval <- average_steps_interval[which(average_steps_interval$x == Max),1]
+Max_interval
+```
+
+The 5-minute interval, on average across all the days in the dataset which contains the maximum number of steps is `r Max_interval`.
+
+#Imputing missing values
+
+Here is the code chunk to manage missing values in the dataset. 
+
+```{r handle missing values}
+sum_missing <- sum(is.na(MyData))
+
+m <- dim(MyData)
+n <- m[1]
+
+##create new dataset 
+NewData <- MyData
+NewData[is.na(NewData)] <- 9999
+
+
+for(i in 1:n){
+  if (NewData[i,1]== 9999)
+  {
+    j <- NewData[i,3]
+    
+    Mean <-average_steps_interval[which(average_steps_interval$interval == j),2]
+    NewData[i,1] <- Mean
+  }
+}
+
+##Total number of steps taken each day
+TotalStepDaily <- aggregate(NewData$steps, list(date=NewData$date), sum)
+hist(TotalStepDaily$x)
+
+
+##Mean and median total number of steps taken per day
+MeanDailyNew <- aggregate (NewData$steps, list(date=NewData$date), mean)
+MedianDailyNew <- aggregate (NewData$steps, list (date=NewData$date), median)
+
+```
+
+The total number of missing values in the original dataset is `r sum_missing` 
+
+The mean of the total number of steps taken per day is as follows.
+
+```{r show mean new, results="asis"}
+library(datasets)
+library(xtable)
+
+xt <- xtable(MeanDailyNew)
+print(xt, type="html")
+```
+
+The median of the total number of steps taken per day is as follows.
+
+```{r show median new, results="asis"}
+library(datasets)
+library(xtable)
+
+xt <- xtable(MedianDailyNew)
+print(xt, type="html")
+```
+
+It can be seen that there is difference between these values and the estimates from the first part of the assignment. 
+The impact from filling in the missing values is we obtain full estimates for all the days in which the previous estimates do not have. 
+
+
+#The differences in activity patterns between weekdays and weekends
+
+Here is the code chunck for the evaluating the differences between weekend and weekday. 
+
+```{r differences weekend and weekday}
+#install.packages('timeDate')
+#library(timeDate)
+NewData$date <- as.Date(NewData$date)
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+NewData$daytype <- c('weekend', 'weekday')[(weekdays(NewData$date) %in% weekdays1)+1L]
+
+MeanDayTypeNew <- aggregate (NewData$steps, list(day=NewData$daytype, interval=NewData$interval), mean)
+
+library('ggplot2')
+averages <- aggregate(steps ~ interval + daytype, data=NewData, mean)
+ggplot(averages, aes(interval, steps)) + geom_line() + facet_grid(daytype ~ .) +
+    xlab("5-minute interval") + ylab("Number of steps")
+```
